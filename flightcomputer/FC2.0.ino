@@ -76,15 +76,10 @@ void loop() {
     if (bmpOK) readBMP(d);
     
 
-    if (imuOK || bmpOK){
-      updateSignals(d, s);
-      modemanager(s);
-
-    } 
-    
+    if (imuOK || bmpOK) updateSignals(d, s);
   }
 
-  
+  modemanager(s);
 
   if (sdOK && (now - lastLog >= LOG_DT)) {
     lastLog = now;

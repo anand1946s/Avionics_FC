@@ -13,8 +13,8 @@ extern FlightMode currentMode;
 static const float LIFTOFF_ACC_G = 2.5f;     // liftoff accel threshold
 static const uint16_t LIFTOFF_COUNT = 3;    // sustained samples
 
-static const float APOGEE_DROP_M =  3.0f;     // drop from maxAlt to confirm apogee
-static const uint16_t APOGEE_COUNT = 20;      // sustained samples
+static const float APOGEE_DROP_M =  1.2f;     // drop from maxAlt to confirm apogee
+static const uint16_t APOGEE_COUNT = 3;      // sustained samples
 
 // ------------ ACTUATION PINS ------------
 static const uint16_t DEPLOY_MS = 500;       // pyro ON time (tune!)
@@ -41,7 +41,7 @@ static void checkApogee(const FlightSignals& s) {
   if (s.maxAlt_m < 2.0f) return;
 
   
-  if (s.vel_mps > -0.5f) {
+  if (s.vel_mps > -0.2f) {
     dropCnt = 0;
     return;
   }

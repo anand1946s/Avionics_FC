@@ -37,10 +37,9 @@ void calibrateSensor() {
     delay(5);
   }
 
- ax_off = ax_sum / N;
-ay_off = ay_sum / N;
-az_off = az_sum / N;
-
+  ax_off = ax_sum / N;
+  ay_off = ay_sum / N;
+  az_off = (az_sum / N) - 4096;  // assumes ±2g range and Z sees +1g at rest
 
   gx_off = gx_sum / N;
   gy_off = gy_sum / N;
