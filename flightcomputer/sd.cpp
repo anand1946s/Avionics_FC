@@ -1,48 +1,70 @@
-#include <Arduino.h>
-#include <SPI.h>
-#include <SdFat.h>
-#include "sd.h"
 #include "config.h"
-#include "data.h"
+#include "filter.h"
+#include <SPI.h>
+#include <SD.h>
+#include "states.h"
 
-// Use SdFat instead of SD.h
-SdFat SD;
-SdFile logFile;
+static File datafile;
+static const char* LOG_FILE = "janesh.csv";
 
-// Initialize SD card
-bool initSD(uint8_t SD_CS_pin) {
-    if (!SD.begin(SD_CS_pin, SPI_HALF_SPEED)) { // SPI_HALF_SPEED works for most boards
-        Serial.println("SD init failed!");
-        return false;
-    }
+static bool logClosed = false;
 
-    // Create file with header if not exists
-    if (!SD.exists("/log.csv")) {
-        if (!logFile.open("/log.csv", O_RDWR | O_CREAT | O_AT_END)) {
-            Serial.println("Failed to create log.csv");
-            return false;
-        }
-        logFile.println("time,ax,ay,az,gx,gy,gz,pressure,temperature,alti");
-        logFile.close();
-    }
-
-    return true;
+static const char* modeToStr(FlightMode m) {
+  switch (m) {
+    case IDLE:    return "IDLE";
+    case ASCENT:  return "ASCENT";
+    case APOGEE:  return "APOGEE";
+    case DESCENT: return "DESCENT";
+    case LANDED:  return "LANDED";
+    default:      return "UNKNOWN";
+  }
 }
 
-// Log data in CSV format
-void logData(const SensorData &data) {
-    if (!logFile.open("/log.csv", O_RDWR | O_CREAT | O_AT_END)) return;
 
-    logFile.print(data.time); logFile.print(",");
-    logFile.print(data.ax); logFile.print(",");
-    logFile.print(data.ay); logFile.print(",");
-    logFile.print(data.az); logFile.print(",");
-    logFile.print(data.gx); logFile.print(",");
-    logFile.print(data.gy); logFile.print(",");
-    logFile.print(data.gz); logFile.print(",");
-    logFile.print(data.pre); logFile.print(",");
-    logFile.print(data.temp); logFile.print(",");
-    logFile.println(data.alti);
+bool initSD() {
+  
+  if (!SD.begin(SD_CS)) return false;
 
-    logFile.close();
+  File test = SD.open("sdtest.txt", FILE_WRITE);
+  if (!test) return false;
+
+  datafile = SD.open(LOG_FILE, FILE_WRITE);
+  if (!datafile) return false;
+
+  
+  datafile.println("tms,mode,modeStr,acc_g,alt_m,vel_mps,maxAlt_m");
+  datafile.flush();
+  //Serial.println("sd fine");
+  return true;
 }
+
+
+
+bool logData(const Data& d, const FlightSignals& s) {
+  if (!datafile) return false;
+
+  datafile.print(d.tms); datafile.print(',');
+  datafile.print((int)d.mode); datafile.print(',');
+  datafile.print(modeToStr(d.mode)); datafile.print(',');
+
+  datafile.print(s.acc_g); datafile.print(',');
+  datafile.print(s.alt_m); datafile.print(',');
+  datafile.print(s.vel_mps); datafile.print(',');
+  datafile.println(s.maxAlt_m);
+
+  return true;
+}
+void closeLog() {
+  if (datafile && !logClosed) {
+    datafile.flush();
+    datafile.close();
+    logClosed = true;
+  }
+}
+
+void flushLog() {
+  if (datafile) {
+    datafile.flush();
+  }
+}
+
