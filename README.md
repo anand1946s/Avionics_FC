@@ -9,6 +9,27 @@ An early-stage flight computer firmware built for **Arduino-class microcontrolle
 
 ---
 
+---
+
+## ESP32 (FreeRTOS) Branch
+
+This repository also contains an experimental **ESP32-based FreeRTOS version** of the flight computer in the branch:
+
+
+The ESP32 branch explores:
+
+- FreeRTOS multi-tasking architecture  
+- Queue-based inter-task communication  
+- Separate tasks for sensing, logging, telemetry, and mode management  
+
+> ⚠️ The ESP32 branch is **experimental and not fully validated**.  
+> It is provided as an architectural reference and learning artifact, not a production-ready system.
+
+The Arduino (`main`) branch remains the simplest and most stable baseline.
+
+---
+
+
 ## Features
 
 - Single-loop design  
