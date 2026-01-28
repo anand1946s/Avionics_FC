@@ -10,14 +10,17 @@
 
 extern FlightMode currentMode;
 
-static const float LIFTOFF_ACC_G = 2.5f;     // liftoff accel threshold
+static const float LIFTOFF_ACC_G = 2.0f;     // liftoff accel threshold
 static const uint16_t LIFTOFF_COUNT = 3;    // sustained samples
 
-static const float APOGEE_DROP_M =  1.2f;     // drop from maxAlt to confirm apogee
-static const uint16_t APOGEE_COUNT = 3;      // sustained samples
+static const float APOGEE_DROP_M =  1.5f;     // drop from maxAlt to confirm apogee
+static const uint16_t APOGEE_COUNT = 8;      // sustained samples
 
 // ------------ ACTUATION PINS ------------
 static const uint16_t DEPLOY_MS = 500;       // pyro ON time (tune!)
+
+static const uint16_t PAYLOAD_ON_MS = 1000;  // 1s
+static const uint16_t PARA_ON_MS    = 1000;  // 1s
 
 
 static void checkLift(const FlightSignals& s) {
@@ -38,10 +41,10 @@ static void checkApogee(const FlightSignals& s) {
   if (currentMode != ASCENT) return;
 
 
-  if (s.maxAlt_m < 2.0f) return;
+  if (s.maxAlt_m < 20.0f) return;
 
   
-  if (s.vel_mps > -0.2f) {
+  if (s.vel_mps > -0.4f) {
     dropCnt = 0;
     return;
   }
@@ -60,19 +63,34 @@ static void checkApogee(const FlightSignals& s) {
 void deploy() {
   static bool started = false;
   static uint32_t t0 = 0;
+  static bool paraStarted = false;
 
   if (!started) {
     started = true;
+    paraStarted = false; 
     t0 = millis();
-    digitalWrite(PARA_PIN, HIGH);
+
+    // payload immediately
     digitalWrite(PAYLOAD_PIN, HIGH);
   }
 
-  if (millis() - t0 >= DEPLOY_MS) {
-    digitalWrite(PARA_PIN, LOW);
+  uint32_t dt = millis() - t0;
+
+  // stop payload after 1s
+  if (dt >= PAYLOAD_ON_MS) {
     digitalWrite(PAYLOAD_PIN, LOW);
+  }
+
+  // start parachute after DEPLOY_MS
+  if (!paraStarted && dt >= DEPLOY_MS) {
+    paraStarted = true;
+    digitalWrite(PARA_PIN, HIGH);
+  }
+
+  // stop parachute after 1s from its start
+  if (paraStarted && dt >= (DEPLOY_MS + PARA_ON_MS)) {
+    digitalWrite(PARA_PIN, LOW);
     currentMode = DESCENT;
-    started = false; // optional if you will never come back
   }
 }
 
@@ -81,7 +99,7 @@ void recover(){
   if (done) return;
   done = true;
 
-  //digitalWrite(BUZZER_PIN, HIGH);  use ble instead
+  Serial.println("LANDED---");
   closeLog();
 }
 

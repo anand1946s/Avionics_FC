@@ -1,3 +1,4 @@
+#include <SoftwareSerial.h>
 #include "config.h"
 #include "sd.h"
 #include "filter.h"
@@ -7,9 +8,14 @@
 #include <SD.h>
 #include <Wire.h>
 
+
+SoftwareSerial BT(2, 3);
+
 bool imuOK = false;
 bool bmpOK = false;
 bool sdOK  = false;
+
+volatile bool armed = false;
 
 uint32_t lastFlush = 0;
 const uint16_t FLUSH_DT = 2000; // 2s
@@ -26,10 +32,27 @@ FlightMode currentMode = IDLE;
 Data d;
 FlightSignals s;
 
+static void handleArmDisarm()
+{
+  while (BT.available()) {
+    char c = BT.read();
+
+    // ignore garbage / line endings
+    if (c=='\r' || c=='\n' || c==' ' || c=='\t') continue;
+
+    if (c == 'A') armed = true;        // ARM
+    else if (c == 'D') armed = false;  // DISARM
+
+    // debug to USB
+    Serial.print("BT cmd: ");
+    Serial.println(c);
+  }
+}
 void setup() {
   Wire.begin();
   Wire.setWireTimeout(25000, true); 
   Serial.begin(9600);
+  BT.begin(9600); 
   delay(500);
   pinMode(PAYLOAD_PIN, OUTPUT);
   pinMode(PARA_PIN, OUTPUT);
@@ -65,6 +88,9 @@ void setup() {
 
 
 void loop() {
+  handleArmDisarm();
+
+  if (!armed) return;
   uint32_t now = millis();
   d.tms = now;
   d.mode = currentMode;
@@ -76,10 +102,15 @@ void loop() {
     if (bmpOK) readBMP(d);
     
 
-    if (imuOK || bmpOK) updateSignals(d, s);
+    if (imuOK || bmpOK){
+      updateSignals(d, s);
+      modemanager(s);
+
+    } 
+    
   }
 
-  modemanager(s);
+  
 
   if (sdOK && (now - lastLog >= LOG_DT)) {
     lastLog = now;

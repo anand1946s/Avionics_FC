@@ -37,9 +37,11 @@ void calibrateSensor() {
     delay(5);
   }
 
-  ax_off = ax_sum / N;
-  ay_off = ay_sum / N;
-  az_off = (az_sum / N) - 4096;  // assumes ±2g range and Z sees +1g at rest
+ax_off = (ax_sum / N) + 4096;   // so d.ax becomes -4096 at rest
+ay_off = (ay_sum / N);
+az_off = (az_sum / N);
+
+
 
   gx_off = gx_sum / N;
   gy_off = gy_sum / N;
@@ -115,7 +117,7 @@ bool readBMP(Data &d) {
   d.pre = p;          
   d.alt_m = alt - alt0_m;       // altitude relative to pad (meters)
   Serial.print("Pre: "); Serial.print(d.pre); Serial.print(" | ");
-  Serial.print(("Alt: ")); Serial.print((d.alt_m));
+  // Serial.print(("Alt: ")); Serial.print((d.alt_m));
 
   return true;
 }
